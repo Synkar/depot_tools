@@ -2901,29 +2901,19 @@ class GcsDependency(Dependency):
                     self.output_dir, f'.{self.file_prefix}_content_names')
                 self.WriteToFile(json.dumps(tar.getnames()), tar_content_file)
 
-                def TarFilter(member, path):
-                    # Don't set mtime based on the archive metadata.
-                    member.mtime = None
-                    # Match the tarfile default filter when available.
-                    if hasattr(tarfile, 'data_filter'):
-                        default_filter = tarfile.data_filter
-                    elif hasattr(tarfile, 'fully_trusted_filter'):
-                        default_filter = tarfile.fully_trusted_filter
-                    else:
-                        default_filter = lambda m, _path: m
-                    return default_filter(member, path)
-
-                try:
-                    tar.extractall(path=self.output_dir, filter=TarFilter)
-                except TypeError:
-                    # Python <3.12 does not support the `filter` argument.
-                    filtered_members = []
-                    for member in tar.getmembers():
-                        filtered = TarFilter(member, self.output_dir)
-                        if filtered:
-                            filtered_members.append(filtered)
-                    tar.extractall(path=self.output_dir,
-                                   members=filtered_members)
+        		# Only define & use the filter on Python versions that support it
+        		if sys.version_info >= (3, 12):
+            		def TarFilter(member, path):
+                		member.mtime = None
+                		default_filter = (tarfile.fully_trusted_filter
+                                  		if sys.version_info < (3, 14)
+                                  		else tarfile.data_filter)
+                		return default_filter(member, path)
+		
+            		tar.extractall(path=self.output_dir, filter=TarFilter)
+        		else:
+            		# Python < 3.12: tarfile doesn't support the `filter` kwarg.
+            		tar.extractall(path=self.output_dir)
 
         if os.getenv('GCLIENT_TEST') != '1':
             code, err = download_from_google_storage.set_executable_bit(
