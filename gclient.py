@@ -2901,19 +2901,19 @@ class GcsDependency(Dependency):
                     self.output_dir, f'.{self.file_prefix}_content_names')
                 self.WriteToFile(json.dumps(tar.getnames()), tar_content_file)
 
-        		# Only define & use the filter on Python versions that support it
-        		if sys.version_info >= (3, 12):
-            		def TarFilter(member, path):
-                		member.mtime = None
-                		default_filter = (tarfile.fully_trusted_filter
-                                  		if sys.version_info < (3, 14)
-                                  		else tarfile.data_filter)
-                		return default_filter(member, path)
-		
-            		tar.extractall(path=self.output_dir, filter=TarFilter)
-        		else:
-            		# Python < 3.12: tarfile doesn't support the `filter` kwarg.
-            		tar.extractall(path=self.output_dir)
+                # Only define & use the filter on Python versions that support it
+                if sys.version_info >= (3, 12):
+                    def TarFilter(member, path):
+                        member.mtime = None
+                        default_filter = (tarfile.fully_trusted_filter
+                                        if sys.version_info < (3, 14)
+                                        else tarfile.data_filter)
+                        return default_filter(member, path)
+
+                    tar.extractall(path=self.output_dir, filter=TarFilter)
+                else:
+                    # Python < 3.12: tarfile doesn't support the `filter` kwarg.
+                    tar.extractall(path=self.output_dir)
 
         if os.getenv('GCLIENT_TEST') != '1':
             code, err = download_from_google_storage.set_executable_bit(
